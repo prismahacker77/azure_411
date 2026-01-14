@@ -45,7 +45,7 @@ MENU_ITEMS = [
     ("2", "blob_container", "Blob Container", "📦"),
     ("3", "vpn_gateway", "VPN Gateway", "🔐"),
     ("4", "vpn_connection", "VPN Connection", "🔗"),
-    ("5", "sql_server", "SQL Server", "🗄️"),
+    ("5", "sql_server", "SQL Server", "🗄️ "),
     ("6", "sql_database", "SQL Database", "💿"),
     ("7", "resource_group", "Resource Group", "📁"),
     ("8", "virtual_network", "Virtual Network", "🌐"),
