@@ -138,12 +138,32 @@ def collect_inputs(resource_key):
     return workload, environment, region, instance
 
 
-def display_result(resource_key, name):
+def get_yes_no(prompt):
+    """Get Y/N input from user"""
+    while True:
+        val = input(f"    {C.CHAMPAGNE}► {prompt} (y/n): {C.END}").strip().lower()
+        if val in ['y', 'yes']:
+            return True
+        if val in ['n', 'no']:
+            return False
+        print(f"    {C.RED}✗ Please enter y or n.{C.END}")
+
+
+def display_result(resource_key, name, pip_name=None):
     """Display generated name with validation"""
     resource = RESOURCE_TYPES[resource_key]
     is_valid, error = resource.validate(name)
 
-    if is_valid:
+    # If pip_name provided, also validate it
+    pip_valid = True
+    pip_error = None
+    if pip_name:
+        pip_resource = RESOURCE_TYPES["public_ip"]
+        pip_valid, pip_error = pip_resource.validate(pip_name)
+
+    all_valid = is_valid and pip_valid
+
+    if all_valid:
         print(C.PLATINUM + """
                     ═══════════════════════════════════
                  ═══════════════╔═══════════╗═══════════════
@@ -164,10 +184,26 @@ def display_result(resource_key, name):
     print(f"    {C.DIM}Scope:{C.END}          {scope_color}{resource.scope}{' (GLOBALLY UNIQUE!)' if resource.scope == 'Global' else ''}{C.END}")
     print(f"    {C.DIM}Pattern:{C.END}        {C.BLUE}{resource.pattern_template}{C.END}")
 
-    if is_valid:
+    # Display Public IP details if provided
+    if pip_name:
+        pip_resource = RESOURCE_TYPES["public_ip"]
+        pip_name_color = C.GREEN if pip_valid else C.RED
+        pip_scope_color = C.RED if pip_resource.scope == "Global" else C.CHAMPAGNE
+
+        print(f"\n    {C.DIM}Resource Type:{C.END}  {C.CYAN}{pip_resource.name}{C.END}")
+        print(f"    {C.DIM}Generated Name:{C.END} {pip_name_color}{C.BOLD}{pip_name}{C.END}")
+        print(f"    {C.DIM}Length:{C.END}         {len(pip_name)} chars")
+        print(f"    {C.DIM}Scope:{C.END}          {pip_scope_color}{pip_resource.scope}{' (GLOBALLY UNIQUE!)' if pip_resource.scope == 'Global' else ''}{C.END}")
+        print(f"    {C.DIM}Pattern:{C.END}        {C.BLUE}{pip_resource.pattern_template}{C.END}")
+
+    if all_valid:
         print(f"\n    {C.GREEN}{C.BOLD}✓ VALIDATION PASSED 🏆{C.END}\n")
     else:
-        print(f"\n    {C.RED}{C.BOLD}✗ {error}{C.END}\n")
+        if not is_valid:
+            print(f"\n    {C.RED}{C.BOLD}✗ {error}{C.END}")
+        if pip_name and not pip_valid:
+            print(f"\n    {C.RED}{C.BOLD}✗ Public IP: {pip_error}{C.END}")
+        print()
 
 
 def main():
@@ -179,10 +215,26 @@ def main():
             sys.exit(0)
 
         workload, env, region, instance = collect_inputs(resource_key)
+
+        # VPN Gateway special flow - ask about Public IP before displaying results
+        pip_name = None
+        if resource_key == "vpn_gateway":
+            print(f"\n{C.CHAMPAGNE}{C.BOLD}                    🌐 VPN GATEWAY PUBLIC IP ADDRESS 🌐{C.END}\n")
+            print(f"    {C.DIM}VPN Gateways require a Public IP address in Azure Portal.{C.END}")
+            print(f"    {C.DIM}CAF recommends naming convention: pip-<workload>-<env>-<region>-<instance>{C.END}\n")
+
+            if get_yes_no("Also generate Public IP address name"):
+                pip_name = True  # Flag to generate pip name after vpn name is created
+
         animate("Applying CAF Best Practices", 1.0)
 
         name = generate_name(resource_key, workload, env, region, instance)
-        display_result(resource_key, name)
+
+        # Generate Public IP name if requested
+        if pip_name:
+            pip_name = f"pip-{name}"
+
+        display_result(resource_key, name, pip_name)
 
         if input(f"    {C.OVO}🎤 Generate another? (y/n): {C.END}").strip().lower() not in ['y', 'yes']:
             sys.exit(0)

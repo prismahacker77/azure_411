@@ -163,4 +163,13 @@ RESOURCE_TYPES = {
         scope="Resource Group",
         requires_region=True
     ),
+    "public_ip": ResourceType(
+        name="Public IP Address",
+        prefix="pip",
+        min_len=1,
+        max_len=80,
+        pattern=r'^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,78}[a-zA-Z0-9_]$',
+        scope="Resource Group",
+        requires_region=True
+    ),
 }
